@@ -1,0 +1,24 @@
+[project]
+name = "scalable-project-2"
+version = "0.1.0"
+description = "Group 11 Project 2 for Scalable Computing (2026)"
+readme = "README.md"
+authors = [
+    { name = "Seán McGoff", email = "mcgoffs@tcd.ie" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.4.6",
+]
+
+[project.scripts]
+sim = "scripts.sim:main"
+bundle = "scripts.bundle:main"
+exp = "scripts.exp:main"
+
+[tool.uv.build-backend]
+module-name = "scripts"
+
+[build-system]
+requires = ["uv_build>=0.12.22,<0.13.0"]
+build-backend = "uv_build"
