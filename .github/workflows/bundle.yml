@@ -1,0 +1,44 @@
+name: Bundle submission
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bundle
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Build submission.zip
+        run: uv run bundle
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: submission-${{ github.sha }}
+          path: submission.zip
+
+      - name: Publish to rolling "latest" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="Automated bundle of \`src/student/\` from ${GITHUB_SHA::7}."
+          git tag -f latest
+          git push -f origin latest
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest submission.zip --clobber
+            gh release edit latest --notes "$notes"
+          else
+            gh release create latest submission.zip \
+              --title "Latest submission" --notes "$notes" --prerelease
+          fi
