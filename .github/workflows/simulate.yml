@@ -1,0 +1,48 @@
+name: Simulate
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: simulate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Run simulator
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          uv run sim | tee sim.txt
+
+      - name: Report results
+        if: always() && hashFiles('sim.txt') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          pass=$(grep -c ': PASS ' sim.txt || true)
+          fail=$(grep -c ': FAIL ' sim.txt || true)
+          {
+            echo "### Simulator results for ${HEAD_SHA::7}"
+            echo
+            echo "**${pass} passed / ${fail} failed** SLO across grading seeds"
+            echo
+            echo '```'
+            cat sim.txt
+            echo '```'
+          } > report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+          gh pr comment "$PR" --body-file report.md --edit-last --create-if-none \
+            || echo "::warning::Could not post PR comment (fork PR?)"
