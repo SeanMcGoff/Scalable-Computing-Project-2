@@ -13,10 +13,17 @@ Design space (see spec section 3.2):
   * discard pairs whose current fidelity has fallen below a floor.
 """
 
-import math
+from abc import ABC, abstractmethod
+
+from qnetsim import DeliveredPair
 
 
-class BaselinePolicy:
+class Policy(ABC):
+    @abstractmethod
+    def on_pair_ready(self, link, pair, state, sim): ...
+
+
+class BaselinePolicy(Policy):
     """Swap-as-soon-as-possible; never purify. PROVIDED as the baseline.
     It meets the reference scenarios' expectations but is deliberately
     insufficient for most variant SLOs."""
@@ -32,7 +39,18 @@ class BaselinePolicy:
                 sim.swap(left, right)
 
 
-def make_policy(params):
+class OneHopPolicy(Policy):
+    def on_pair_ready(self, link, pair, state, sim):
+        # Mark as delivered always, destroy pair on delivery
+        sim.delivered.append(
+            DeliveredPair(
+                request_id=-1, delivered_at=state.now, fidelity=pair.f0, consumed=1
+            )
+        )
+        state.pairs[link.link_id].remove(pair)
+
+
+def make_policy(params) -> Policy:
     """Return your policy object. Replace BaselinePolicy with your own class
     (same constructor signature and on_pair_ready hook)."""
     return BaselinePolicy(params)
