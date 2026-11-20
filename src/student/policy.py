@@ -53,7 +53,8 @@ class OneHopPolicy(Policy):
 def make_policy(params) -> Policy:
     """Return your policy object. Replace BaselinePolicy with your own class
     (same constructor signature and on_pair_ready hook)."""
-    return BaselinePolicy(params)
+    # return BaselinePolicy(params)
+    return FreshFirstPolicy(params)
 
 
 class FreshFirstPolicy(BaselinePolicy):
