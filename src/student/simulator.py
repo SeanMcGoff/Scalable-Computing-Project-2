@@ -145,7 +145,7 @@ def run_variant_scenario(params, sim_time_ms, seed, policy) -> dict:
         stats['generated'] / max(1, delivered).
     """
     physics = params["physics"]
-    links = make_links(params, "variant")
+    links = make_links(params, "variant")  # topology between 1,2,3
 
     simulator = Simulator(
         links=links,
@@ -157,7 +157,9 @@ def run_variant_scenario(params, sim_time_ms, seed, policy) -> dict:
     )
 
     delivered = simulator.run(sim_time_ms=sim_time_ms, policy=policy)
-    delivery_timings = [i.delivered_at for i in delivered]
+    delivery_timings = [
+        i.delivered_at for i in delivered
+    ]  # should be already sorted bc of append imidiately after delivery
     request_timings = request_times(params, sim_time_ms, seed)
 
     buffer = 0
