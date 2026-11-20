@@ -50,6 +50,8 @@ def mean_ci95(values):
 
 
 def run_sensitivity(params, seeds) -> dict:
+    """Returns OAT sensitivity of the variant delivered rate w.r.t. each t2 in the grid"""
+
     exp = params["experiment"]
     t2_grid = exp["t2_grid_ms"]
     seeds_per_point = exp["seeds_per_point"]
@@ -99,7 +101,7 @@ if __name__ == "__main__":
     import sys
 
     params = json.load(
-        open(sys.argv[1] if len(sys.argv) > 1 else "variant_params.json")
+        open(sys.argv[1] if len(sys.argv) > 1 else "variant_params.json")  # noqa: SIM115
     )
     exp = params["experiment"]
     seeds = exp["seeds"]
