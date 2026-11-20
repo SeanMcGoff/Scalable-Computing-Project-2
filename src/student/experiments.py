@@ -50,15 +50,6 @@ def mean_ci95(values):
 
 
 def run_sensitivity(params, seeds) -> dict:
-    """TODO: implement the OAT sweep described above.
-    For each t2 in params['experiment']['t2_grid_ms']:
-      - deep-copy params, set params_copy['physics']['t2_ms'] = t2
-      - for each seed in seeds[:seeds_per_point]: run the variant scenario
-        with your policy (make_policy(params_copy)) and record 'rate'
-      - append {"t2_ms": ..., "rate_mean": ..., "rate_ci95": ..., "n_seeds": ...}
-    Write the results dict to experiment_results.json and return it.
-    """
-
     exp = params["experiment"]
     t2_grid = exp["t2_grid_ms"]
     seeds_per_point = exp["seeds_per_point"]
