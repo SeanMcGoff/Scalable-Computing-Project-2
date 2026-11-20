@@ -40,8 +40,9 @@ class BaselinePolicy(Policy):
 
 
 class OneHopPolicy(Policy):
+    """Mark as delivered always, destroy pair on delivery"""
+
     def on_pair_ready(self, link, pair, state, sim):
-        # Mark as delivered always, destroy pair on delivery
         sim.delivered.append(
             DeliveredPair(
                 request_id=-1, delivered_at=state.now, fidelity=pair.f0, consumed=1
@@ -51,27 +52,28 @@ class OneHopPolicy(Policy):
 
 
 class TwoHopPolicy(Policy):
+    """Swap the oldest pair on each link as soon as both links hold one"""
+
     def on_pair_ready(self, link, pair, state, sim):
-        # Swap the oldest pair on each link as soon as both links hold one
         while state.pairs.get(0) and state.pairs.get(1):
             sim.swap(0, 1)
 
 
-def make_policy(params) -> Policy:
-    """Return your policy object. Replace BaselinePolicy with your own class
-    (same constructor signature and on_pair_ready hook)."""
-    # return BaselinePolicy(params)
-    return FreshFirstPolicy(params)
-
-
-class FreshFirstPolicy(BaselinePolicy):
-    def __init__(self, params):
-        super().__init__(params)
+class VariantPolicy(BaselinePolicy):
+    """Prioritises the freshest pair first"""
 
     def on_pair_ready(self, link, pair, state, sim):
         for left, right in self.chains:
+            # hold/swap condition
             if state.pairs.get(left) and state.pairs.get(right):
                 sim.swap(left, right, left_index=-1, right_index=-1)
         link1 = state.pairs.get(1, [])
+
+        # discard low-fidelity pairs
         while link1 and state.current_fidelity(link1[0]) < 0.5:
             sim.discard(1, 0)
+
+
+def make_policy(params) -> Policy:
+    """Returns the policy for variant simulator"""
+    return VariantPolicy(params)
