@@ -10,12 +10,13 @@ Only numpy + standard library + qnetsim may be used.
 import math
 
 import numpy as np
+from policy import OneHopPolicy
 from qnetsim import Link, Simulator, summarise
 
 # ---------------------------------------------------------------- helpers
 
 
-def make_links(params, which="variant"):
+def make_links(params, which="variant") -> list[Link]:
     """Build Link objects from the variant parameter dict.
 
     `which="one_hop"` / `"two_hop"` select the reference scenarios defined in
@@ -60,7 +61,7 @@ def make_links(params, which="variant"):
     return links
 
 
-def request_times(params, sim_time_ms, seed):
+def request_times(params, sim_time_ms, seed) -> list[float]:
     """Deterministic request arrival times (ms) for the variant workload.
     Uses a generator derived from `seed` so runs are reproducible.
     PROVIDED."""
@@ -92,8 +93,19 @@ def run_one_hop(params, sim_time_ms, seed) -> dict:
     DeliveredPair-equivalent record (or count pairs via state.stats and
     track fidelities in a list).
     """
-    # print(f"One Hop Params {params}")
-    result = {"rate": 0, "mean_fideltiy": 0}
+    links = make_links(params, "one_hop")
+    sim = Simulator(
+        links=links,
+        t2=math.inf,
+        q_swap=1.0,
+        f_swap=params["physics"]["f_swap"],
+        purification_allowed=False,
+        seed=seed,
+    )
+    delivered = sim.run(sim_time_ms=sim_time_ms, policy=OneHopPolicy())
+    summary = summarise(delivered=delivered, sim_time_ms=sim_time_ms)
+
+    result = {"rate": summary["rate"], "mean_fidelity": summary["mean_fidelity"]}
     return result
 
 
