@@ -10,7 +10,7 @@ Only numpy + standard library + qnetsim may be used.
 import math
 
 import numpy as np
-from policy import OneHopPolicy
+from policy import OneHopPolicy, TwoHopPolicy
 from qnetsim import Link, Simulator, summarise
 
 # ---------------------------------------------------------------- helpers
@@ -83,15 +83,8 @@ def run_one_hop(params, sim_time_ms, seed) -> dict:
     """Reference scenario: a single elementary link, no swapping.
     Return {"rate": ..., "mean_fidelity": ...}.
 
-    TODO: build the one-hop links, run the Simulator for sim_time_ms with
-    policy=None, and use qnetsim.summarise on a delivered-list you fill
-    yourself (every generated pair counts as delivered here — record
-    deliveries via a tiny inline policy or by reading state.pairs/stats).
-
-    HINT: the harness only records `delivered` on swap; for the one-hop
-    case, write a 3-line policy class whose on_pair_ready appends a
-    DeliveredPair-equivalent record (or count pairs via state.stats and
-    track fidelities in a list).
+    Every generated pair counts as delivered (recorded by OneHopPolicy).
+    Analytic check: rate = attempt_rate * p_success, fidelity = f_link.
     """
     links = make_links(params, "one_hop")
     sim = Simulator(
@@ -114,12 +107,23 @@ def run_two_hop(params, sim_time_ms, seed) -> dict:
     T2 = infinity, q_swap = 1 (params['reference']['two_hop']).
     Return {"rate": ..., "mean_fidelity": ...}.
 
-    TODO: build links, construct the Simulator with t2=math.inf,
-    q_swap=1.0, f_swap=params['physics']['f_swap']; use a policy that swaps
-    as soon as both links hold a pair; summarise with qnetsim.summarise.
+    TwoHopPolicy swaps as soon as both links hold a pair.
+    Analytic check: rate = min over links of attempt_rate * p_success,
+    fidelity = f_link^2 * f_swap.
     """
-    # print(f"Two Hop Params {params}")
-    result = {"rate": 0, "mean_fideltiy": 0}
+    links = make_links(params, "two_hop")
+    sim = Simulator(
+        links=links,
+        t2=math.inf,
+        q_swap=1.0,
+        f_swap=params["physics"]["f_swap"],
+        purification_allowed=False,
+        seed=seed,
+    )
+    delivered = sim.run(sim_time_ms=sim_time_ms, policy=TwoHopPolicy())
+    summary = summarise(delivered=delivered, sim_time_ms=sim_time_ms)
+
+    result = {"rate": summary["rate"], "mean_fidelity": summary["mean_fidelity"]}
     return result
 
 
