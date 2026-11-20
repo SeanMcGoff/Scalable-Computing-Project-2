@@ -54,3 +54,15 @@ def make_policy(params) -> Policy:
     """Return your policy object. Replace BaselinePolicy with your own class
     (same constructor signature and on_pair_ready hook)."""
     return BaselinePolicy(params)
+
+
+class FreshFirstPolicy(BaselinePolicy):
+    def __init__(self, params):
+        super().__init__(params)
+
+    def on_pair_ready(self, link, pair, state, sim):
+        for left, right in self.chains:
+            if state.pairs.get(left) and state.pairs.get(right):
+                sim.swap(left, right, left_index=-1, right_index=-1)
+        while len(state.pairs.get(1, [])) > 1:
+            sim.discard(1, 0)
