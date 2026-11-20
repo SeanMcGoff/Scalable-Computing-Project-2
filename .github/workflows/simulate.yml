@@ -25,6 +25,10 @@ jobs:
           set -o pipefail
           uv run sim | tee sim.txt
 
+      - name: Determinism check
+        run: uv run det
+
+
       - name: Report results
         if: always() && hashFiles('sim.txt') != ''
         env:
