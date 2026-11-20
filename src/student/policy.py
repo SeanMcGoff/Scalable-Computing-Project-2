@@ -72,5 +72,6 @@ class FreshFirstPolicy(BaselinePolicy):
         for left, right in self.chains:
             if state.pairs.get(left) and state.pairs.get(right):
                 sim.swap(left, right, left_index=-1, right_index=-1)
-        while len(state.pairs.get(1, [])) > 1:
+        link1 = state.pairs.get(1, [])
+        while link1 and state.current_fidelity(link1[0]) < 0.5:
             sim.discard(1, 0)
