@@ -8,6 +8,7 @@ Only numpy + standard library + qnetsim may be used.
 """
 
 import math
+from collections import deque
 
 import numpy as np
 from policy import OneHopPolicy, TwoHopPolicy
@@ -131,23 +132,78 @@ def run_variant_scenario(params, sim_time_ms, seed, policy) -> dict:
     """Full variant scenario with YOUR policy.
     Return {"rate": ..., "mean_fidelity": ..., "p95_latency_ms": ...,
             "pairs_consumed_per_delivery": ...}.
-
-    TODO:
-      * build the variant topology links;
-      * construct the Simulator with your variant's physics
-        (t2, q_swap, f_swap, purification_allowed, seed);
-      * generate request_times(...); use a pooled unlimited end-to-end buffer.
-        A request consumes a buffered pair at zero latency, or queues FIFO
-        for a later delivery. Exclude unserved requests from p95. Fidelity
-        is measured at generation; this buffer does not model further decay;
-      * return the four metrics. pairs_consumed_per_delivery =
-        stats['generated'] / max(1, delivered).
     """
-    # print(f"Variant Params {params}")
+    physics = params["physics"]
+    links = make_links(params, "variant")  # topology between 1,2,3
+
+    simulator = Simulator(
+        links=links,
+        t2=physics["t2_ms"],
+        q_swap=physics["q_swap"],
+        f_swap=physics["f_swap"],
+        purification_allowed=physics["purification_allowed"],
+        seed=seed,
+    )
+
+    delivered = simulator.run(sim_time_ms=sim_time_ms, policy=policy)
+    delivery_timings = [
+        i.delivered_at for i in delivered
+    ]  # should be already sorted bc of append immediately after delivery
+    request_timings = request_times(params, sim_time_ms, seed)
+
+    # FIFO matching: buffered pairs serve requests instantly, else requests queue
+    buffer = 0
+    waiting = deque()
+    delays = []
+
+    delivery_idx, request_idx = 0, 0
+
+    # merge both sorted timelines, handling the earlier event each step
+    while delivery_idx < len(delivery_timings) or request_idx < len(request_timings):
+        next_delivery = (
+            delivery_timings[delivery_idx]
+            if delivery_idx < len(delivery_timings)
+            else math.inf
+        )
+        next_request = (
+            request_timings[request_idx]
+            if request_idx < len(request_timings)
+            else math.inf
+        )
+
+        if next_delivery <= next_request:
+            # pair delivered: serve oldest waiting request, else buffer it
+            if waiting:
+                customer_time = waiting.popleft()
+                delays.append(next_delivery - customer_time)
+            else:
+                buffer += 1
+            delivery_idx += 1
+        else:
+            # request arrives: take a buffered pair, else join the queue
+            if buffer > 0:
+                buffer -= 1
+                delays.append(0.0)
+            else:
+                waiting.append(next_request)
+            request_idx += 1
+
+    # p95 over served requests only (unserved ones never got a latency)
+    if delays:
+        delays_sorted = sorted(delays)
+        p95_index = math.ceil(0.95 * len(delays_sorted)) - 1
+        p95_latency = delays_sorted[p95_index]
+    else:
+        p95_latency = math.inf
+
+    n_delivered = len(delivered)
+    summary = summarise(delivered=delivered, sim_time_ms=sim_time_ms)
+
     result = {
-        "rate": 0,
-        "mean_fidelity": 0,
-        "p95_latency_ms": 0,
-        "pairs_consumed_per_delivery": 0,
+        "rate": n_delivered / (sim_time_ms / 1000),
+        "mean_fidelity": summary["mean_fidelity"],
+        "p95_latency_ms": p95_latency,
+        "pairs_consumed_per_delivery": simulator.state.stats["generated"]
+        / max(1, n_delivered),
     }
     return result
