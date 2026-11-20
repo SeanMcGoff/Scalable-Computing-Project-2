@@ -50,6 +50,13 @@ class OneHopPolicy(Policy):
         state.pairs[link.link_id].remove(pair)
 
 
+class TwoHopPolicy(Policy):
+    def on_pair_ready(self, link, pair, state, sim):
+        # Swap the oldest pair on each link as soon as both links hold one
+        while state.pairs.get(0) and state.pairs.get(1):
+            sim.swap(0, 1)
+
+
 def make_policy(params) -> Policy:
     """Return your policy object. Replace BaselinePolicy with your own class
     (same constructor signature and on_pair_ready hook)."""

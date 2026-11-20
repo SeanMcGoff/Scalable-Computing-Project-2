@@ -15,6 +15,7 @@ dependencies = [
 sim = "scripts.sim:main"
 bundle = "scripts.bundle:main"
 exp = "scripts.exp:main"
+det = "scripts.determinism:main"
 
 [tool.uv.build-backend]
 module-name = "scripts"
