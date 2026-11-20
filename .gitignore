@@ -1,4 +1,7 @@
 .venv/
 .vscode/
 __pycache__/
+
+# sim/experiment artefacts
 submission.zip
+experiment_results.json

@@ -25,23 +25,38 @@ def make_links(params, which="variant"):
     links = []
     if which == "one_hop":
         ref = params["reference"]["one_hop"]
-        links.append(Link(link_id=0, nodes=(0, 1),
-                          attempt_rate=ref["attempt_rate"],
-                          p_success=ref["p_success"],
-                          f_link=params["physics"]["f_link"]))
+        links.append(
+            Link(
+                link_id=0,
+                nodes=(0, 1),
+                attempt_rate=ref["attempt_rate"],
+                p_success=ref["p_success"],
+                f_link=params["physics"]["f_link"],
+            )
+        )
     elif which == "two_hop":
         ref = params["reference"]["two_hop"]
         for i, lp in enumerate(ref["links"]):
-            links.append(Link(link_id=i, nodes=(i, i + 1),
-                              attempt_rate=lp["attempt_rate"],
-                              p_success=lp["p_success"],
-                              f_link=params["physics"]["f_link"]))
+            links.append(
+                Link(
+                    link_id=i,
+                    nodes=(i, i + 1),
+                    attempt_rate=lp["attempt_rate"],
+                    p_success=lp["p_success"],
+                    f_link=params["physics"]["f_link"],
+                )
+            )
     else:
         for i, lp in enumerate(params["topology"]["links"]):
-            links.append(Link(link_id=i, nodes=tuple(lp["nodes"]),
-                              attempt_rate=lp["attempt_rate"],
-                              p_success=lp["p_success"],
-                              f_link=params["physics"]["f_link"]))
+            links.append(
+                Link(
+                    link_id=i,
+                    nodes=tuple(lp["nodes"]),
+                    attempt_rate=lp["attempt_rate"],
+                    p_success=lp["p_success"],
+                    f_link=params["physics"]["f_link"],
+                )
+            )
     return links
 
 
@@ -78,8 +93,8 @@ def run_one_hop(params, sim_time_ms, seed) -> dict:
     track fidelities in a list).
     """
     # print(f"One Hop Params {params}")
-    result =  {"rate": 0, "mean_fideltiy": 0}
-    return  result
+    result = {"rate": 0, "mean_fideltiy": 0}
+    return result
 
 
 def run_two_hop(params, sim_time_ms, seed) -> dict:
@@ -92,8 +107,8 @@ def run_two_hop(params, sim_time_ms, seed) -> dict:
     as soon as both links hold a pair; summarise with qnetsim.summarise.
     """
     # print(f"Two Hop Params {params}")
-    result =  {"rate": 0, "mean_fideltiy": 0}
-    return  result
+    result = {"rate": 0, "mean_fideltiy": 0}
+    return result
 
 
 def run_variant_scenario(params, sim_time_ms, seed, policy) -> dict:
@@ -113,5 +128,10 @@ def run_variant_scenario(params, sim_time_ms, seed, policy) -> dict:
         stats['generated'] / max(1, delivered).
     """
     # print(f"Variant Params {params}")
-    result =  {"rate": 0, "mean_fidelity": 0, "p95_latency_ms": 0, "pairs_consumed_per_delivery":0}
+    result = {
+        "rate": 0,
+        "mean_fidelity": 0,
+        "p95_latency_ms": 0,
+        "pairs_consumed_per_delivery": 0,
+    }
     return result
