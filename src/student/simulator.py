@@ -8,6 +8,7 @@ Only numpy + standard library + qnetsim may be used.
 """
 
 import math
+from collections import deque
 
 import numpy as np
 from policy import OneHopPolicy, TwoHopPolicy
@@ -143,11 +144,64 @@ def run_variant_scenario(params, sim_time_ms, seed, policy) -> dict:
       * return the four metrics. pairs_consumed_per_delivery =
         stats['generated'] / max(1, delivered).
     """
-    # print(f"Variant Params {params}")
+    physics = params["physics"]
+    links = make_links(params, "variant")
+
+    simulator = Simulator(
+        links=links,
+        t2=physics["t2_ms"],
+        q_swap=physics["q_swap"],
+        f_swap=physics["f_swap"],
+        purification_allowed=physics["purification_allowed"],
+        seed=seed,
+    )
+
+    delivered = simulator.run(sim_time_ms=sim_time_ms, policy=policy)
+    delivery_timings = [i.delivered_at for i in delivered]
+    request_timings = request_times(params, sim_time_ms, seed)
+
+    buffer = 0
+    waiting = deque()
+    delays = []
+
+    d_i, r_i = 0, 0
+
+    while d_i < len(delivery_timings) or r_i < len(request_timings):
+        next_delivery = (
+            delivery_timings[d_i] if d_i < len(delivery_timings) else math.inf
+        )
+        next_request = request_timings[r_i] if r_i < len(request_timings) else math.inf
+
+        if next_delivery <= next_request:
+            if waiting:
+                customer_time = waiting.popleft()
+                delays.append(next_delivery - customer_time)
+            else:
+                buffer += 1
+            d_i += 1
+        else:
+            if buffer > 0:
+                buffer -= 1
+                delays.append(0.0)
+            else:
+                waiting.append(next_request)
+            r_i += 1
+
+    if delays:
+        delays_sorted = sorted(delays)
+        p95_index = math.ceil(0.95 * len(delays_sorted)) - 1
+        p95_latency = delays_sorted[p95_index]
+    else:
+        p95_latency = math.inf
+
+    n_delivered = len(delivered)
+    summary = summarise(delivered=delivered, sim_time_ms=sim_time_ms)
+
     result = {
-        "rate": 0,
-        "mean_fidelity": 0,
-        "p95_latency_ms": 0,
-        "pairs_consumed_per_delivery": 0,
+        "rate": n_delivered / (sim_time_ms / 1000),
+        "mean_fidelity": summary["mean_fidelity"],
+        "p95_latency_ms": p95_latency,
+        "pairs_consumed_per_delivery": simulator.state.stats["generated"]
+        / max(1, n_delivered),
     }
     return result
