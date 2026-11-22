@@ -28,6 +28,8 @@ jobs:
       - name: Determinism check
         run: uv run det
 
+      - name: Simulation validation 
+        run: uv run validate
 
       - name: Report results
         if: always() && hashFiles('sim.txt') != ''
